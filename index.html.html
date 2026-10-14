@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>高速距離控除 計算ツール</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c18;--sur:#0e1526;--sur2:#141d32;--sur3:#1a2540;
+  --bd:#1e2d4a;--bd2:#273859;
+  --tx:#e8edf8;--tx2:#8a9bbf;--txm:#4a5a7a;
+  --ac:#38bdf8;--ac2:#0ea5e9;--acd:rgba(56,189,248,.12);--acb:rgba(56,189,248,.3);
+  --gn:#34d399;--gnd:rgba(52,211,153,.1);--gnb:rgba(52,211,153,.3);
+  --am:#fbbf24;--amd:rgba(251,191,36,.1);--amb:rgba(251,191,36,.25);
+  --rd:#f87171;--rdb:rgba(248,113,113,.3);
+  --pu:#a78bfa;--pud:rgba(167,139,250,.1);--pub:rgba(167,139,250,.3);
+}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans JP',sans-serif;min-height:100vh;padding-bottom:64px}
+.wrap{max-width:620px;margin:0 auto;padding:0 14px}
+
+header{padding:28px 0 18px;border-bottom:1px solid var(--bd);margin-bottom:20px}
+h1{font-size:20px;font-weight:900;line-height:1.3}
+h1 em{color:var(--ac);font-style:normal}
+header p{margin-top:6px;font-size:12px;color:var(--tx2);line-height:1.7}
+
+.lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--txm);margin-bottom:8px}
+
+.wtog{display:flex;gap:8px;margin-bottom:20px}
+.wbtn{flex:1;padding:10px 0;border-radius:8px;border:1.5px solid var(--bd2);background:var(--sur2);color:var(--tx2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.14s;text-align:center}
+.wbtn small{display:block;font-size:10px;font-weight:400;margin-top:2px;opacity:.75}
+.wbtn.on{border-color:var(--acb);background:var(--acd);color:var(--ac)}
+
+.totbar{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.ti{text-align:center}
+.tl{font-size:10px;color:var(--txm);margin-bottom:4px}
+.tv{font-family:'DM Mono',monospace;font-size:20px;font-weight:500}
+.tv.base{color:var(--tx2)}.tv.ded{color:var(--gn)}.tv.tot{color:var(--am)}
+.tu{font-size:10px;color:var(--txm);margin-left:1px}
+
+/* ── entry cards ── */
+.entries{margin-bottom:18px}
+.empty{text-align:center;color:var(--txm);font-size:12px;padding:28px 0;border:1px dashed var(--bd);border-radius:10px}
+.ecard{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color .15s}
+.ecard.editing{border-color:var(--amb);background:var(--amd)}
+.ecard-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.enum{min-width:26px;height:26px;border-radius:50%;background:var(--sur3);color:var(--tx2);font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ecard.editing .enum{background:var(--amd);color:var(--am);border:1px solid var(--amb)}
+.etitle{flex:1;font-size:12px;font-weight:700;color:var(--tx2)}
+.ecard.editing .etitle{color:var(--am)}
+.ekm-total{font-family:'DM Mono',monospace;font-size:16px;font-weight:500;flex-shrink:0}
+.ekm-total.pos{color:var(--gn)}.ekm-total.zero{color:var(--txm)}
+
+.erows{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+@media(max-width:440px){.erows{grid-template-columns:1fr}}
+.erow{background:var(--sur2);border-radius:8px;padding:9px 11px}
+.erow-lbl{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:5px}
+.erow-lbl.out{color:var(--ac)}.erow-lbl.ret{color:var(--pu)}
+.erow-route{font-size:11px;color:var(--tx2);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.erow-ic{font-size:13px;color:var(--tx);font-weight:700}
+.erow-km{font-family:'DM Mono',monospace;font-size:11px;margin-top:2px}
+.erow-km.pos{color:var(--gn)}.erow-km.zero{color:var(--txm)}
+.erow.empty-leg{opacity:.4}
+
+.ebtns{display:flex;gap:7px}
+.ebtn{flex:1;padding:7px 0;border-radius:7px;border:1px solid var(--bd2);background:none;color:var(--tx2);font-family:inherit;font-size:12px;cursor:pointer;transition:.14s;font-weight:700}
+.ebtn:hover{border-color:var(--acb);color:var(--ac)}
+.ebtn.del:hover{border-color:var(--rdb);color:var(--rd)}
+
+/* ── form ── */
+.form{background:var(--sur);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:12px}
+.form.edit-mode{border-color:var(--amb)}
+.ftitle{font-size:13px;font-weight:700;color:var(--tx2);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.fbadge{border-radius:5px;font-size:10px;font-weight:700;padding:2px 8px;border:1px solid}
+.fbadge.new{background:var(--acd);color:var(--ac);border-color:var(--acb)}
+.fbadge.edit{background:var(--amd);color:var(--am);border-color:var(--amb)}
+
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0}
+@media(max-width:480px){.fgrid{grid-template-columns:1fr}}
+.fleg{background:var(--sur2);border:1px solid var(--bd);border-radius:9px;padding:12px}
+.fleg-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:9px;display:flex;align-items:center;gap:5px}
+.fleg-lbl .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.fleg-lbl.out{color:var(--ac)}.fleg-lbl.ret{color:var(--pu)}
+
+/* 帰路提案バナー */
+.ret-suggest{
+  display:none;background:var(--pud);border:1px solid var(--pub);
+  border-radius:7px;padding:9px 11px;margin-bottom:9px;
+  font-size:11.5px;color:var(--pu);cursor:pointer;
+  transition:.14s;
+}
+.ret-suggest:hover{background:rgba(167,139,250,.18)}
+.ret-suggest strong{font-weight:900}
+
+.fleg select{
+  width:100%;padding:8px 9px;background:var(--sur3);border:1px solid var(--bd2);color:var(--tx);
+  border-radius:7px;font-family:inherit;font-size:12px;cursor:pointer;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%234a5a7a' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 8px center;
+  padding-right:24px;transition:.12s;margin-bottom:7px;
+}
+.fleg select:last-child{margin-bottom:0}
+.fleg select:focus{outline:none;border-color:var(--acb)}
+.fleg select:disabled{opacity:.4;cursor:not-allowed}
+.fleg-km{font-size:11.5px;min-height:16px;margin-top:4px}
+.fleg-km.pos{color:var(--gn);font-family:'DM Mono',monospace}
+.fleg-km.txm{color:var(--txm)}
+
+/* IC内のグループ表示用 */
+optgroup{font-weight:700}
+
+.sum-preview{display:none;background:var(--gnd);border:1px solid var(--gnb);border-radius:8px;padding:10px 14px;margin:12px 0;text-align:center}
+.sum-big{font-family:'DM Mono',monospace;font-size:28px;font-weight:500;color:var(--gn)}
+.sum-detail{font-size:11px;color:var(--tx2);margin-top:3px}
+
+.addbtn{width:100%;padding:12px;border-radius:8px;background:var(--ac);border:none;color:#07090f;font-family:inherit;font-size:14px;font-weight:900;cursor:pointer;transition:background .14s;letter-spacing:.02em}
+.addbtn:hover{background:var(--ac2)}
+.addbtn:disabled{background:var(--sur3);color:var(--txm);cursor:not-allowed}
+.addbtn.update{background:var(--am)}
+.addbtn.update:hover{background:#f59e0b}
+
+.resetbtn{width:100%;padding:9px;border-radius:8px;border:1px solid var(--bd2);background:none;color:var(--tx2);font-family:inherit;font-size:12px;cursor:pointer;transition:.14s;margin-top:10px}
+.resetbtn:hover{border-color:var(--rdb);color:var(--rd)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .2s ease}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>高速<em>距離控除</em>計算ツール</h1>
+  <p>降りたICを選ぶだけ。往路・帰路を1セットで積み上げます。</p>
+</header>
+
+<div class="lbl">勤務形態</div>
+<div class="wtog">
+  <button class="wbtn on" data-km="365" onclick="setWork(this)">隔日勤務<small>基準 365 km</small></button>
+  <button class="wbtn"    data-km="270" onclick="setWork(this)">日勤勤務<small>基準 270 km</small></button>
+</div>
+
+<div class="totbar">
+  <div class="ti"><div class="tl">基準距離</div><div class="tv base"><span id="tBase">365</span><span class="tu">km</span></div></div>
+  <div class="ti"><div class="tl">控除合計</div><div class="tv ded"><span id="tDed">0.0</span><span class="tu">km</span></div></div>
+  <div class="ti"><div class="tl">実賃走距離</div><div class="tv tot"><span id="tTot">365.0</span><span class="tu">km</span></div></div>
+</div>
+
+<div class="lbl">乗降記録</div>
+<div class="entries" id="entries"><div class="empty">まだ追加されていません</div></div>
+
+<div class="form" id="mainForm">
+  <div class="ftitle">
+    <span class="fbadge new" id="fBadge">第1回</span>
+    <span id="fLabel">往路・帰路を入力</span>
+  </div>
+  <div class="fgrid">
+    <!-- 往路 -->
+    <div class="fleg">
+      <div class="fleg-lbl out"><span class="dot"></span>往路（降りたIC）</div>
+      <select id="outRoute" onchange="onLegRoute('out')">
+        <option value="">── 路線を選択 ──</option>
+      </select>
+      <select id="outIC" disabled onchange="onLegIC('out')">
+        <option value="">── ICを選択 ──</option>
+      </select>
+      <div class="fleg-km txm" id="outSub">路線を選んでください</div>
+    </div>
+    <!-- 帰路 -->
+    <div class="fleg">
+      <div class="fleg-lbl ret"><span class="dot"></span>帰路（降りたIC）</div>
+      <!-- 帰路提案バナー -->
+      <div class="ret-suggest" id="retSuggest" onclick="applyRetSuggest()"></div>
+      <select id="retRoute" onchange="onLegRoute('ret')">
+        <option value="">── 路線を選択 ──</option>
+      </select>
+      <select id="retIC" disabled onchange="onLegIC('ret')">
+        <option value="">── ICを選択 ──</option>
+      </select>
+      <div class="fleg-km txm" id="retSub">路線を選んでください</div>
+    </div>
+  </div>
+
+  <div class="sum-preview" id="sumPreview">
+    <div class="sum-big"><span id="sumBig">0.0</span> km</div>
+    <div class="sum-detail" id="sumDetail"></div>
+  </div>
+  <button class="addbtn" id="addBtn" disabled onclick="commitEntry()">このセットを追加 →</button>
+</div>
+
+<button class="resetbtn" onclick="resetAll()">すべてリセット</button>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════
+// 路線・ICデータ
+// 全IC距離 = 東京起点（または各路線の独立起点）からの累積km
+// 「*連絡」マークは別路線への乗り継ぎポイント
+// ══════════════════════════════════════════════════════
+const ROUTES = [
+
+  // 公式：東名＋小田厚は同一テーブルで管理。東京IC起点の累積距離。
+  {id:'tomei', name:'東名/小田原',
+   note:'起点：東京IC（用賀）／ 小田原厚木道路は東名厚木ICから分岐',
+   ics:[
+    {n:'東京IC（用賀）',     km:0,    sub:''},
+    {n:'東名川崎IC',          km:7.6,  sub:''},
+    {n:'横浜青葉IC',          km:13.3, sub:''},
+    {n:'横浜町田IC',          km:19.7, sub:''},
+    {n:'厚木IC',              km:35.0, sub:'小田原厚木道路への分岐点'},
+    {n:'〔小田厚〕平塚IC',    km:43.5, sub:'東京より43.5km'},
+    {n:'〔小田厚〕大磯IC',    km:49.5, sub:'東京より49.5km'},
+    {n:'〔小田厚〕二宮IC',    km:53.0, sub:'東京より53.0km'},
+    {n:'〔小田厚〕小田原東IC',km:60.0, sub:'東京より60.0km'},
+    {n:'〔小田厚〕荻窪IC',    km:64.9, sub:'東京より64.9km'},
+    {n:'〔小田厚〕小田原西IC',km:66.7, sub:'東京より66.7km'},
+    {n:'秦野中井IC',           km:50.1, sub:'東名本線'},
+    {n:'大井松田IC',           km:57.9, sub:'東名本線'},
+    {n:'御殿場IC',             km:83.7, sub:'東名本線'},
+   ]},
+
+
+  // ─── 中央自動車道 ───
+  {id:'chuo', name:'中央自動車道',
+   note:'起点：高井戸IC（永福JCT）',
+   ics:[
+    {n:'高井戸IC',    km:0},
+    {n:'調布IC',      km:8.2},
+    {n:'稲城IC',      km:13.7},
+    {n:'国立府中IC',  km:17.0},
+    {n:'日野IC',      km:22.4},
+    {n:'八王子IC',    km:31.7},
+    {n:'相模湖IC',    km:47.0},
+    {n:'大月IC',      km:63.2},
+    {n:'勝沼IC',      km:79.7},
+    {n:'甲府昭和IC',  km:101.1},
+    {n:'甲府南IC',    km:106.8},
+    {n:'韮崎IC',      km:121.0},
+   ]},
+
+  // ─── 京葉道路 ＋ 千葉東金道路（通算） ───
+
+
+  // 一之江IC起点→蘇我ICで館山道へ連続
+  {id:'keiyou_tateyama', name:'京葉道/館山',
+   note:'起点：一之江IC（7号小松川線接続）／ 館山道は蘇我ICから連続',
+   ics:[
+    {n:'一之江IC',               km:0},
+    {n:'篠崎IC',                 km:3.0},
+    {n:'原木IC',                 km:9.2},
+    {n:'船橋IC',                 km:16.9},
+    {n:'武石IC',                 km:20.2},
+    {n:'千葉IC',                 km:26.9},
+    {n:'蘇我IC',                 km:33.0},
+    {n:'〔館山道〕市原IC',        km:40.4},
+    {n:'〔館山道〕木更津北IC',    km:53.9},
+    {n:'〔館山道〕木更津南IC',    km:58.1},
+    {n:'〔館山道〕君津IC',        km:67.1},
+    {n:'〔館山道〕富津中央IC',    km:77.2},
+    {n:'〔館山道〕富津竹岡IC',    km:83.3},
+   ]},
+
+
+  // ─── 京葉道路 ＋ 千葉東金道路（通算） ───
+  // 一之江IC起点→千葉東JCTで千葉東金道路へ
+  {id:'keiyou_togane', name:'京葉道/東金',
+   note:'起点：一之江IC（7号小松川線接続）／ 千葉東金道路は千葉東ICから連続',
+   ics:[
+    {n:'一之江IC',               km:0},
+    {n:'篠崎IC',                 km:3.0},
+    {n:'原木IC',                 km:9.2},
+    {n:'船橋IC',                 km:16.9},
+    {n:'武石IC',                 km:20.2},
+    {n:'千葉IC',                 km:26.9},
+    {n:'蘇我IC',                 km:33.0},
+    {n:'〔千葉東金〕千葉東IC',    km:34.1},
+    {n:'〔千葉東金〕千葉北IC',    km:37.6},
+    {n:'〔千葉東金〕東金IC',      km:58.5},
+   ]},
+
+
+  // ─── 成田（湾岸線→東関道経由） ───
+  {id:'hkanto', name:'湾岸/東関道',
+   note:'起点：高谷JCT（湾岸線・外環道接続）',
+   ics:[
+    {n:'高谷JCT',           km:0},
+    {n:'湾岸市川IC',         km:1.0},
+    {n:'谷津船橋IC',         km:5.5},
+    {n:'湾岸習志野IC',       km:7.9},
+    {n:'湾岸千葉IC',         km:11.6},
+    {n:'千葉北IC',           km:21.1},
+    {n:'四街道IC',           km:27.8},
+    {n:'佐倉IC',             km:36.3},
+    {n:'富里IC',             km:44.9},
+    {n:'酒々井IC',           km:53.8},
+    {n:'大栄IC',             km:62.8},
+    {n:'佐原香取IC',         km:75.0},
+    {n:'潮来IC',             km:87.0},
+   ]},
+
+
+  // ─── 成田（京葉道路→東関道経由） ───
+    // ─── 成田（湾岸→東関道経由） ───
+  {id:'hkanto_narita', name:'成田(湾岸→東関道経由)',
+   note:'起点：高谷JCT（湾岸線・外環道接続）→東関道→成田IC',
+   ics:[
+    {n:'成田IC',             km:48.7, sub:'高谷JCT起点：東関道で成田まで48.7km'},
+   ]},
+
+  {id:'hkanto_keiyou', name:'成田(京葉道→東関道経由)',
+   note:'起点：一之江IC（⑦号小松川線末端）→京葉道路→千葉北ICで東関道→成田',
+   ics:[
+    {n:'成田IC',             km:70.4, sub:'一之江0km→千葉北26.9km→東関道成田48.7km 通算約70.4km'},
+   ]},
+
+
+
+  // ─── 常磐自動車道 ───
+  {id:'jban', name:'常磐',
+   note:'起点：三郷JCT（三郷線末端）',
+   ics:[
+    {n:'三郷JCT',      km:0},
+    {n:'流山IC',        km:8.5},
+    {n:'柏IC',          km:17.2},
+    {n:'我孫子IC',      km:25.2},
+    {n:'取手IC',        km:28.3},
+    {n:'守谷SA/IC',     km:37.8},
+    {n:'谷田部IC',      km:43.5},
+    {n:'桜土浦IC',      km:54.4},
+    {n:'土浦北IC',      km:60.1},
+    {n:'水戸IC',        km:90.0},
+   ]},
+
+  // ─── ⑤号→美女木JCT→外環内回り→大泉JCT→関越道（所沢以降） ───
+  // 帰路に多い：東関道・東北道→外環→大泉JCT→関越所沢以降で降りる
+
+  // ─── ⑤号→美女木JCT→外環内回り→大泉JCT→関越道（所沢以降） ───
+  // 帰路に多い：東関道・東北道→外環→大泉JCT→関越所沢以降で降りる
+  // ─── 東北自動車道 ───
+  {id:'tohoku', name:'東北',
+   note:'起点：川口JCT（川口線S1末端）',
+   ics:[
+    {n:'川口JCT',     km:0},
+    {n:'浦和IC',      km:3.2},
+    {n:'岩槻IC',      km:10.5},
+    {n:'久喜IC',      km:25.5},
+    {n:'加須IC',      km:33.4},
+    {n:'羽生IC',      km:39.4},
+    {n:'館林IC',      km:46.0},
+    {n:'佐野藤岡IC',  km:55.0},
+    {n:'栃木IC',      km:72.7},
+    {n:'栃木都賀JCT', km:75.4},
+    {n:'鹿沼IC',      km:91.5},
+    {n:'宇都宮IC',    km:103.0},
+   ]},
+
+
+  // 美女木JCT起点。外環内回りを走り大泉JCTで関越へ。その先所沢ICから関越の各IC
+  {id:'gaikan_in_kanetsu', name:'5号/美女木→関越道',
+   note:'起点：美女木JCT（⑤号池袋線末端）→外環内回り→大泉JCT経由→関越道へ',
+   ics:[
+    {n:'外環内回り：戸田西IC',     km:0.9,  sub:'大泉方面出口のみ（大泉起点7.4km）'},
+    {n:'外環内回り：和光IC',       km:3.2,  sub:'両方向出入口'},
+    {n:'〔関越〕所沢IC',           km:21.4, sub:'大泉JCT（美女木から8.3km）→練馬IC経由→所沢（13.0km）通算'},
+    {n:'〔関越〕鶴ヶ島JCT',       km:39.2},
+    {n:'〔関越〕東松山IC',         km:59.9},
+    {n:'〔関越〕嵐山小川IC',       km:70.6},
+    {n:'〔関越〕花園IC',           km:81.4},
+    {n:'〔関越〕本庄児玉IC',       km:98.7},
+    {n:'〔関越〕藤岡JCT',          km:117.8},
+    {n:'〔関越〕前橋IC',           km:128.8},
+    {n:'〔関越〕沼田IC',           km:152.5},
+    {n:'〔関越〕水上IC',           km:178.4},
+   ]},
+
+
+  // ─── 関越自動車道 ───
+  {id:'kanetsu', name:'関越',
+   note:'起点：練馬IC（池袋線末端）',
+   ics:[
+    {n:'練馬IC',       km:0},
+    {n:'所沢IC',       km:13.0},
+    {n:'鶴ヶ島JCT',   km:30.8},
+    {n:'東松山IC',     km:51.5},
+    {n:'嵐山小川IC',   km:62.2},
+    {n:'花園IC',       km:73.0},
+    {n:'本庄児玉IC',   km:90.3},
+    {n:'本庄早稲田IC', km:96.0},
+    {n:'藤岡JCT',      km:109.4},
+    {n:'前橋IC',       km:120.4},
+    {n:'沼田IC',       km:144.1},
+    {n:'水上IC',       km:170.0},
+   ]},
+
+  // ─── 外環道外回り（⑤号池袋線→千葉方面） ───
+  // ⑤号末端の美女木JCT（大泉起点8.3km）から千葉方向の出口のみ
+
+  // ─── 外環道外回り（⑤号池袋線→千葉方面） ───
+  // ⑤号末端の美女木JCT（大泉起点8.3km）から千葉方向の出口のみ
+  // 「高谷JCT方面の出口のみ」が降りられるIC
+  {id:'gaikan_out_h5', name:'外環外回（5号→千葉方面）',
+   note:'起点：美女木JCT（⑤号池袋線末端）起点から千葉方向・出口のみ',
+   ics:[
+    {n:'戸田東IC',        km:1.4,  sub:'高谷方面出口のみ（大泉起点9.7km）'},
+    {n:'外環浦和IC',      km:3.8,  sub:'高谷方面出口のみ（大泉起点12.1km）'},
+    {n:'川口中央IC',      km:8.3,  sub:'高谷方面出口のみ（大泉起点16.6km）'},
+    {n:'川口東IC',        km:10.5, sub:'高谷方面出口のみ（大泉起点18.8km）'},
+    {n:'草加IC',          km:14.1, sub:'両方向出入口（大泉起点22.4km）'},
+    {n:'三郷南IC',        km:27.0, sub:'高谷方面出口のみ（大泉起点35.3km）'},
+    {n:'松戸IC',          km:30.6, sub:'高谷方面入口のみ→降車不可'},
+    {n:'市川北IC',        km:35.1, sub:'高谷方面出口のみ（大泉起点43.4km）'},
+    {n:'市川中央IC',      km:36.1, sub:'高谷方面出口のみ（大泉起点44.4km）'},
+   ]},
+
+  // ─── 外環道内回り（京葉道路から→大泉方向） ───
+  // 京葉JCT（大泉起点45.9km）から内回りに入り大泉・埼玉方向へ
+  // ※⑦号小松川線→京葉道路→京葉JCTで外環内回りに乗り換える実務ルート
+
+  // ─── 外環道内回り（京葉道路から→大泉方向） ───
+  // 京葉JCT（大泉起点45.9km）から内回りに入り大泉・埼玉方向へ
+  // ※⑦号小松川線→京葉道路→京葉JCTで外環内回りに乗り換える実務ルート
+  // 「大泉JCT方面の出口のみ」が降りられるIC
+  {id:'gaikan_in_keiyou', name:'京葉道/外環内回り',
+   note:'起点：京葉JCT（大泉起点45.9km）から大泉方向・出口のみ',
+   ics:[
+    {n:'市川南IC',        km:0.7,  sub:'大泉方面出口のみ（大泉起点46.6km）'},
+    {n:'草加IC',          km:23.5, sub:'両方向出入口'},
+    {n:'外環三郷西IC',    km:17.7, sub:'大泉方面出口のみ（大泉起点28.2km）'},
+    {n:'川口西IC',        km:32.1, sub:'大泉方面出口のみ（大泉起点13.8km）'},
+    {n:'戸田西IC',        km:38.5, sub:'大泉方面出口のみ（大泉起点7.4km）'},
+   ]},
+
+
+
+
+
+
+  // ─── 横羽経由/横浜新道/横浜横須賀道路 ───
+  {id:'yokohane_yokoyoko', name:'横羽経由/横浜新道/横浜横須賀',
+   note:'起点：保土ヶ谷IC（K1横羽→K2三ツ沢→三ツ沢JCTで横浜新道へ）',
+   ics:[
+    {n:'保土ヶ谷IC（三ツ沢JCT接続）', km:0,    sub:'K1横羽→K2三ツ沢→横浜新道（首都高ここまで）'},
+    {n:'〔横横〕狩場IC',       km:5.8,  sub:'新保土ヶ谷IC→狩場IC通算'},
+    {n:'〔横横〕別所IC',       km:9.0,  sub:'大型車通行不可'},
+    {n:'〔横横〕日野IC',       km:13.5, sub:'大船駅最寄り'},
+    {n:'〔横横〕港南台IC',     km:15.1},
+    {n:'〔横横〕朝比奈IC',     km:19.3, sub:'鎌倉最寄り'},
+    {n:'〔横横〕逗子IC',       km:24.9},
+    {n:'〔横横〕横須賀IC',     km:27.1},
+    {n:'〔横横〕衣笠IC',       km:32.4},
+    {n:'〔横横〕佐原IC',       km:34.2},
+    {n:'〔横横〕浦賀IC',       km:37.3},
+    {n:'〔横横〕馬堀海岸IC',   km:38.8},
+   ]},
+
+
+  // 公式：第三京浜～横浜新道は同一テーブルで管理。玉川IC起点の累積距離。
+  {id:'dai3kei', name:'第三京浜/横浜新道',
+   note:'起点：玉川IC（首都高経由）／ 横浜新道は保土ヶ谷ICで分岐連続',
+   ics:[
+    {n:'玉川IC',                  km:0},
+    {n:'京浜川崎IC',              km:2.1},
+    {n:'都筑IC',                  km:7.7},
+    {n:'港北IC',                  km:10.7},
+    {n:'保土ヶ谷IC',              km:16.6},
+    {n:'〔横浜新道〕峰岡IC',      km:18.3},
+    {n:'〔横浜新道〕藤塚IC',      km:20.8},
+    {n:'〔横浜新道〕新保土ヶ谷IC',km:21.2},
+    {n:'〔横浜新道〕今井IC',      km:22.5},
+    {n:'〔横浜新道〕川上IC',      km:23.9},
+    {n:'〔横浜新道〕戸塚IC',      km:26.6},
+   ]},
+
+  // ─── 横浜新道→横浜横須賀道路（横浜新道ルート・通算） ───
+  // 実務：第三京浜→保土ヶ谷IC→横浜新道→新保土ヶ谷ICで横横へ
+  // 起点：保土ヶ谷IC（第三京浜16.6km地点）
+
+
+  // ─── 横浜新道→横浜横須賀道路（横浜新道ルート・通算） ───
+  // 実務：第三京浜→保土ヶ谷IC→横浜新道→新保土ヶ谷ICで横横へ
+  // 起点：保土ヶ谷IC（第三京浜16.6km地点）
+
+  // 起点：玉川IC（第三京浜起点）
+  {id:'dai3kei_yokoyoko', name:'第三京浜→横浜横須賀（第三京浜ルート）',
+   note:'起点：玉川IC（第三京浜起点）／ 保土ヶ谷IC→横浜新道→横横へ通算',
+   ics:[
+    {n:'玉川IC',                  km:0},
+    {n:'京浜川崎IC',              km:2.1},
+    {n:'都筑IC',                  km:7.7},
+    {n:'港北IC',                  km:10.7},
+    {n:'保土ヶ谷IC',              km:16.6, sub:'ここから横浜新道へ'},
+    {n:'〔横横〕狩場IC',          km:22.4, sub:'新保土ヶ谷IC経由→狩場IC通算'},
+    {n:'〔横横〕別所IC',          km:25.6, sub:'大型車通行不可'},
+    {n:'〔横横〕日野IC',          km:30.1, sub:'大船駅最寄り'},
+    {n:'〔横横〕港南台IC',        km:31.7},
+    {n:'〔横横〕朝比奈IC',        km:35.9, sub:'鎌倉最寄り'},
+    {n:'〔横横〕逗子IC',          km:41.5},
+    {n:'〔横横〕横須賀IC',        km:43.7},
+    {n:'〔横横〕衣笠IC',          km:49.0},
+    {n:'〔横横〕佐原IC',          km:50.8},
+    {n:'〔横横〕浦賀IC',          km:53.9},
+    {n:'〔横横〕馬堀海岸IC',      km:55.4, sub:'横横終点'},
+   ]},
+
+
+
+  // ─── アクアライン→館山道（通算） ───
+  // 川崎浮島JCT起点。木更津JCTで館山道に入る通算距離
+
+
+
+  // ─── アクアライン→館山道（通算） ───
+  // 川崎浮島JCT起点。木更津JCTで館山道に入る通算距離
+  // 箱根・熱海は東名で既カバー。ディズニーは京葉道路で既カバー。
+  {id:'aqua_tateyama', name:'アクアライン/館山道',
+   note:'起点：川崎浮島JCT（K6川崎線接続）／ 木更津JCTで館山道へ',
+   ics:[
+    {n:'川崎浮島JCT',             km:0},
+    {n:'海ほたるPA',              km:9.5},
+    {n:'木更津JCT（館山道接続）',  km:14.8, sub:'ここから館山自動車道へ'},
+    {n:'〔館山道〕木更津北IC',     km:17.9},
+    {n:'〔館山道〕木更津南IC',     km:22.1},
+    {n:'〔館山道〕君津IC',         km:31.1},
+    {n:'〔館山道〕富津中央IC',     km:41.2},
+    {n:'〔館山道〕富津竹岡IC',     km:47.3},
+   ]},
+
+  // ─── 圏央道（③号渋谷線→東名→圏央道） ───
+  // 東名東京ICを0kmとし、海老名JCT（33.9km）で圏央道に入る通算距離
+
+  // ─── 圏央道（③号渋谷線→東名→圏央道） ───
+  // 東名東京ICを0kmとし、海老名JCT（33.9km）で圏央道に入る通算距離
+  // ③号→東名→圏央道→中央道・関越道方面
+  {id:'kendo_tomei', name:'圏央道（東名経由）',
+   note:'起点：東名東京IC（用賀）／ 海老名JCTで圏央道へ',
+   ics:[
+    {n:'東京IC（用賀）',          km:0},
+    {n:'東名川崎IC',              km:7.6},
+    {n:'横浜青葉IC',              km:13.3},
+    {n:'横浜町田IC',              km:19.7},
+    {n:'厚木IC',                  km:35.0},
+    {n:'〔圏央道〕海老名JCT',     km:33.9,  sub:'東名海老名JCT経由で圏央道へ'},
+    {n:'〔圏央道〕海老名IC',      km:35.8},
+    {n:'〔圏央道〕圏央厚木IC',    km:40.7},
+    {n:'〔圏央道〕相模原愛川IC',  km:46.0},
+    {n:'〔圏央道〕相模原IC',      km:51.4},
+    {n:'〔圏央道〕高尾山IC',      km:58.6},
+    {n:'〔圏央道〕八王子JCT（中央道接続）', km:62.8},
+    {n:'〔圏央道〕八王子西IC',    km:67.1},
+    {n:'〔圏央道〕日の出IC',      km:71.9},
+    {n:'〔圏央道〕あきる野IC',    km:76.3},
+    {n:'〔圏央道〕青梅IC',        km:82.4},
+    {n:'〔圏央道〕入間IC',        km:91.8},
+    {n:'〔圏央道〕狭山日高IC',    km:97.8},
+    {n:'〔圏央道〕圏央鶴ヶ島IC',  km:102.8},
+    {n:'〔圏央道〕鶴ヶ島JCT（関越道接続）', km:104.6},
+    {n:'〔圏央道〕川島IC',        km:111.1},
+    {n:'〔圏央道〕桶川北本IC',    km:118.7},
+    {n:'〔圏央道〕久喜白岡JCT（東北道接続）', km:131.9},
+   ]},
+
+  // ─── 圏央道（④号新宿線→中央道→圏央道） ───
+
+  // ─── 圏央道（④号新宿線→中央道→圏央道） ───
+  // 中央道高井戸IC起点、八王子JCT（36.0km）で圏央道に入る通算距離
+  {id:'kendo_chuo', name:'圏央道（中央道経由）',
+   note:'起点：高井戸IC（永福JCT）／ 八王子JCTで圏央道へ',
+   ics:[
+    {n:'高井戸IC',                km:0},
+    {n:'調布IC',                  km:8.2},
+    {n:'稲城IC',                  km:13.7},
+    {n:'国立府中IC',              km:17.0},
+    {n:'日野IC',                  km:22.4},
+    {n:'八王子IC',                km:31.7},
+    {n:'〔圏央道〕八王子JCT',     km:36.0,  sub:'中央道八王子JCT経由で圏央道へ'},
+    {n:'〔圏央道〕八王子西IC',    km:40.4},
+    {n:'〔圏央道〕日の出IC',      km:45.2},
+    {n:'〔圏央道〕あきる野IC',    km:49.6},
+    {n:'〔圏央道〕青梅IC',        km:55.7},
+    {n:'〔圏央道〕入間IC',        km:65.1},
+    {n:'〔圏央道〕狭山日高IC',    km:71.1},
+    {n:'〔圏央道〕圏央鶴ヶ島IC',  km:76.1},
+    {n:'〔圏央道〕鶴ヶ島JCT（関越道接続）', km:77.9},
+    {n:'〔圏央道〕川島IC',        km:84.4},
+    {n:'〔圏央道〕桶川北本IC',    km:92.0},
+    {n:'〔圏央道〕久喜白岡JCT（東北道接続）', km:105.2},
+   ]},
+
+  // ─── 圏央道（関越道→圏央道） ───
+  // 練馬IC起点、鶴ヶ島JCT（30.8km）で圏央道に入る通算距離
+
+  // ─── 圏央道（関越道→圏央道） ───
+  // 練馬IC起点、鶴ヶ島JCT（30.8km）で圏央道に入る通算距離
+  // 東名・中央道・横横方面へ
+  {id:'kendo_kanetsu', name:'圏央道（関越道経由）',
+   note:'起点：練馬IC（⑤号池袋線末端）／ 鶴ヶ島JCTで圏央道へ',
+   ics:[
+    {n:'練馬IC',                  km:0},
+    {n:'所沢IC',                  km:13.0},
+    {n:'鶴ヶ島JCT（圏央道分岐）', km:30.8,  sub:'関越道から圏央道へ'},
+    {n:'〔圏央道〕圏央鶴ヶ島IC',  km:32.6},
+    {n:'〔圏央道〕狭山日高IC',    km:37.6},
+    {n:'〔圏央道〕入間IC',        km:43.6},
+    {n:'〔圏央道〕青梅IC',        km:52.8},
+    {n:'〔圏央道〕あきる野IC',    km:58.9},
+    {n:'〔圏央道〕日の出IC',      km:63.3},
+    {n:'〔圏央道〕八王子西IC',    km:68.1},
+    {n:'〔圏央道〕八王子JCT（中央道接続）', km:72.5},
+    {n:'〔圏央道〕高尾山IC',      km:76.6},
+    {n:'〔圏央道〕相模原IC',      km:83.8},
+    {n:'〔圏央道〕相模原愛川IC',  km:89.3},
+    {n:'〔圏央道〕圏央厚木IC',    km:94.1},
+    {n:'〔圏央道〕海老名IC',      km:98.5},
+    {n:'〔圏央道〕海老名JCT（東名接続）', km:100.4},
+   ]},
+
+
+  // ─── ⑥号三郷線→常磐道→圏央道→東関道→新空港（緊急迂回ルート） ───
+  {id:'kendo_jban_narita', name:'常磐→圏央→東関道→新空港（迂回ルート）',
+   note:'起点：三郷JCT（⑥号三郷線末端）／ つくばJCT→圏央道→大栄JCT→東関道→成田',
+   ics:[
+    {n:'三郷JCT（⑥号三郷線接続）', km:0},
+    {n:'流山IC',                  km:8.5},
+    {n:'柏IC',                    km:17.2},
+    {n:'守谷SA/IC',               km:37.8},
+    {n:'〔圏央道〕つくばJCT',     km:50.0,  sub:'常磐道からつくばJCTで圏央道へ'},
+    {n:'〔圏央道〕つくば牛久IC',  km:56.2},
+    {n:'〔圏央道〕阿見東IC',      km:63.4},
+    {n:'〔圏央道〕稲敷IC',        km:76.5},
+    {n:'〔圏央道〕神崎IC',        km:87.6},
+    {n:'〔圏央道〕大栄JCT（東関道接続）', km:99.1},
+    {n:'〔東関道〕富里IC',        km:103.7},
+    {n:'〔東関道〕成田IC',        km:107.5},
+    {n:'〔新空港道〕新空港IC（成田空港）', km:111.4},
+   ]},
+
+  // ════════════════════════════════════════════════
+  // ─── 東北道→日光宇都宮道路（日光・那須方面） ───
+
+  // ════════════════════════════════════════════════
+  // ─── 東北道→日光宇都宮道路（日光・那須方面） ───
+  // 東北道川口JCT起点。宇都宮ICで日光宇都宮道路に接続し日光・那須方面へ
+  {id:'tohoku_nikko', name:'東北道/日光宇都宮道路（日光・那須）',
+   note:'起点：川口JCT（川口線S1末端）／ 宇都宮ICで日光宇都宮道路へ',
+   ics:[
+    {n:'川口JCT',                  km:0},
+    {n:'浦和IC',                   km:3.2},
+    {n:'岩槻IC',                   km:10.5},
+    {n:'久喜IC',                   km:25.5},
+    {n:'館林IC',                   km:46.0},
+    {n:'佐野藤岡IC',               km:55.0},
+    {n:'栃木IC',                   km:72.7},
+    {n:'鹿沼IC',                   km:91.5},
+    {n:'宇都宮IC（日光宇都宮道路接続）', km:103.0, sub:'ここから日光宇都宮道路へ'},
+    {n:'〔日光道〕徳次郎IC',        km:104.6},
+    {n:'〔日光道〕篠井IC',          km:108.1},
+    {n:'〔日光道〕大沢IC',          km:114.2},
+    {n:'〔日光道〕土沢IC',          km:118.4},
+    {n:'〔日光道〕今市IC',          km:122.8},
+    {n:'〔日光道〕日光IC',          km:127.7},
+    {n:'〔日光道〕清滝IC（日光終点）', km:133.7},
+   ]},
+
+  // ─── 外環道→東関道→館山道（アクアライン代替） ───
+
+  // ─── 外環道→東関道→館山道（アクアライン代替） ───
+  // アクア通行止め時の迂回：外環高谷JCT→東関道→京葉道路→蘇我→館山道
+  {id:'gaikan_tateyama', name:'外環道→東関道→京葉道路→館山道（アクア代替）',
+   note:'起点：高谷JCT（外環道）→東関道→京葉道路→蘇我→館山道',
+   ics:[
+    {n:'高谷JCT（外環道・東関道接続）', km:0},
+    {n:'〔京葉道路〕市川IC',      km:7.5},
+    {n:'〔京葉道路〕千葉北IC',    km:21.5},
+    {n:'〔京葉道路〕千葉IC',      km:26.9},
+    {n:'〔京葉道路〕蘇我IC',      km:33.0, sub:'ここから館山自動車道へ'},
+    {n:'〔館山道〕市原IC',        km:40.4},
+    {n:'〔館山道〕木更津北IC',     km:53.9},
+    {n:'〔館山道〕木更津南IC',     km:58.1},
+    {n:'〔館山道〕君津IC',         km:67.1},
+    {n:'〔館山道〕富津中央IC',     km:77.2},
+    {n:'〔館山道〕富津竹岡IC',     km:83.3},
+   ]},
+
+  // ─── 東名 ／ 東富士五湖道路（富士山・河口湖・山梨方面） ───
+  // 実務：東名東京IC→御殿場IC→東富士五湖道路→富士吉田・河口湖・山中湖方面
+  // 御殿場ICから御殿場市街（約3km）→東富士五湖道路に接続
+
+  // ─── 東名 ／ 東富士五湖道路（富士山・河口湖・山梨方面） ───
+  // 実務：東名東京IC→御殿場IC→東富士五湖道路→富士吉田・河口湖・山中湖方面
+  // 御殿場ICから御殿場市街（約3km）→東富士五湖道路に接続
+  // 富士山世界遺産センター・河口湖・忍野八海方面はこのルート
+  {id:'tomei_fujigoko', name:'東名/東富士五湖道路（富士山・河口湖・山梨）',
+   note:'起点：東名東京IC（用賀）／ 御殿場ICで東富士五湖道路へ',
+   ics:[
+    {n:'東京IC（用賀）',           km:0},
+    {n:'東名川崎IC',               km:7.6},
+    {n:'横浜青葉IC',               km:13.3},
+    {n:'横浜町田IC',               km:19.7},
+    {n:'厚木IC',                   km:35.0},
+    {n:'秦野中井IC',               km:50.1},
+    {n:'大井松田IC',               km:57.9},
+    {n:'御殿場IC（東富士五湖道路接続）', km:83.7, sub:'御殿場ICから東富士五湖道路へ約3km'},
+    {n:'〔東富士〕富士吉田IC',     km:86.7+0,  sub:'富士山・富士急ハイランド最寄り'},
+    {n:'〔東富士〕富士吉田忍野SIC',km:86.7+4.4, sub:'忍野八海最寄り'},
+    {n:'〔東富士〕山中湖IC',       km:86.7+8.4, sub:'山中湖・箱根仙石原方面'},
+    {n:'〔東富士〕須走IC',         km:86.7+18.0, sub:'東富士五湖道路終点'},
+   ]},
+
+  // 上記の御殿場IC起点を正しく修正：御殿場IC=83.7km、市街経由約3kmで富士吉田IC
+  // ─── 関越道→北陸道（新潟・スキー・富山方面） ───
+  // 練馬IC起点。長岡JCT（246.2km）で北陸道に接続
+  // 関越道単独でも湯沢・苗場・月夜野のスキー場までカバー
+
+  // 上記の御殿場IC起点を正しく修正：御殿場IC=83.7km、市街経由約3kmで富士吉田IC
+  // ─── 関越道→北陸道（新潟・スキー・富山方面） ───
+  // 練馬IC起点。長岡JCT（246.2km）で北陸道に接続
+  // 関越道単独でも湯沢・苗場・月夜野のスキー場までカバー
+  // 北陸道方面は長岡・上越・富山・金沢方面
+  {id:'kanetsu_hokuriku', name:'関越道 / 北陸道（新潟・スキー・富山方面）',
+   note:'起点：練馬IC（⑤号池袋線末端）／ スキー場は水上・湯沢・月夜野、新潟は長岡JCTから北陸道へ',
+   ics:[
+    {n:'練馬IC',                   km:0},
+    {n:'所沢IC',                   km:13.0},
+    {n:'東松山IC',                 km:51.5},
+    {n:'花園IC',                   km:73.0},
+    {n:'本庄児玉IC',               km:90.3},
+    {n:'高崎IC',                   km:108.2},
+    {n:'渋川伊香保IC（草津・四万方面）', km:126.5},
+    {n:'月夜野IC（みなかみスキー場）',   km:151.1},
+    {n:'水上IC（谷川・水上スキー場）',   km:168.5},
+    {n:'湯沢IC（苗場・かぐらスキー場）', km:180.1},
+    {n:'六日町IC（石打スキー場）',       km:188.8},
+    {n:'塩沢石打IC',               km:192.2},
+    {n:'小千谷IC',                 km:234.3},
+    {n:'長岡IC',                   km:244.5},
+    {n:'長岡JCT（北陸道接続）',    km:246.2, sub:'ここから北陸自動車道へ'},
+    {n:'〔北陸道〕柏崎IC',         km:256.6},
+    {n:'〔北陸道〕上越IC',         km:288.7},
+    {n:'〔北陸道〕糸魚川IC',       km:318.1},
+    {n:'〔北陸道〕富山IC',         km:356.6},
+    {n:'〔北陸道〕金沢東IC',       km:398.8},
+    {n:'〔北陸道〕金沢西IC',       km:403.8},
+   ]},
+];
+// ══════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════
+let workKm   = 365;
+let entries  = [];
+let eid      = 0;
+let editingId = null;
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+(function(){
+  ['outRoute','retRoute'].forEach(selId=>{
+    const sel = document.getElementById(selId);
+    ROUTES.forEach(r=>{
+      const o = document.createElement('option');
+      o.value = r.id; o.textContent = r.name;
+      sel.appendChild(o);
+    });
+  });
+  renderEntries();
+  updateTotals();
+})();
+
+// ══════════════════════════════════════════════════════
+// FORM EVENTS
+// ══════════════════════════════════════════════════════
+function onLegRoute(leg){
+  const rid   = document.getElementById(leg+'Route').value;
+  const route = ROUTES.find(r=>r.id===rid);
+  const icSel = document.getElementById(leg+'IC');
+  const sub   = document.getElementById(leg+'Sub');
+
+  icSel.innerHTML = `<option value="">── ICを選択 ──</option>`;
+  icSel.disabled  = !route;
+  sub.textContent = route ? route.note : '路線を選んでください';
+  sub.className   = 'fleg-km txm';
+
+  if(route){
+    route.ics.forEach(ic=>{
+      const o   = document.createElement('option');
+      o.value   = ic.km;
+      const km  = ic.km > 0 ? ` — ${ic.km.toFixed(1)}km` : '（起点）';
+      o.textContent = ic.n + km;
+      icSel.appendChild(o);
+    });
+  }
+
+  // 帰路の場合、提案バナーを非表示にする（手動変更したら提案は無効）
+  if(leg==='ret') hideSuggest();
+  refreshPreview();
+}
+
+function onLegIC(leg){
+  const rid   = document.getElementById(leg+'Route').value;
+  const route = ROUTES.find(r=>r.id===rid);
+  const km    = parseFloat(document.getElementById(leg+'IC').value);
+  const sub   = document.getElementById(leg+'Sub');
+
+  if(!route || isNaN(km)){
+    sub.textContent = route ? route.note : '路線を選んでください';
+    sub.className   = 'fleg-km txm';
+    refreshPreview();
+    return;
+  }
+  const ic = route.ics.find(i=>i.km===km);
+  const subTxt = ic.sub ? `${ic.n}（${ic.sub}）` : `${ic.n}`;
+  sub.textContent = `控除距離 ${km.toFixed(1)} km`;
+  sub.className   = km > 0 ? 'fleg-km pos' : 'fleg-km txm';
+
+  // 往路ICが決まったら帰路提案を表示
+  if(leg==='out' && km > 0) showSuggest(route, ic, km);
+  refreshPreview();
+}
+
+// ─── 帰路提案 ───
+function showSuggest(route, ic, km){
+  const banner = document.getElementById('retSuggest');
+  banner.dataset.routeId = route.id;
+  banner.dataset.km      = km;
+  banner.innerHTML = `💡 帰路も <strong>${ic.n}（${km.toFixed(1)}km）</strong> から乗りますか？`;
+  banner.style.display = 'block';
+}
+
+function hideSuggest(){
+  document.getElementById('retSuggest').style.display = 'none';
+}
+
+function applyRetSuggest(){
+  const banner  = document.getElementById('retSuggest');
+  const routeId = banner.dataset.routeId;
+  const km      = parseFloat(banner.dataset.km);
+
+  // 帰路の路線・ICをセット
+  const retRouteSel = document.getElementById('retRoute');
+  retRouteSel.value = routeId;
+  onLegRoute('ret');          // IC一覧を構築
+  hideSuggest();
+
+  // ICをkmで選択
+  const retICSel = document.getElementById('retIC');
+  retICSel.value = km;
+  onLegIC('ret');             // サブテキスト更新・プレビュー更新
+}
+
+// ─── プレビュー更新 ───
+function getLegVal(leg){
+  const rid   = document.getElementById(leg+'Route').value;
+  const route = ROUTES.find(r=>r.id===rid);
+  const km    = parseFloat(document.getElementById(leg+'IC').value);
+  if(!route || isNaN(km)) return null;
+  const ic = route.ics.find(i=>i.km===km);
+  return ic ? {route, ic, km} : null;
+}
+
+function refreshPreview(){
+  const out   = getLegVal('out');
+  const ret   = getLegVal('ret');
+  const total = (out?out.km:0) + (ret?ret.km:0);
+  const pv    = document.getElementById('sumPreview');
+  const btn   = document.getElementById('addBtn');
+
+  if(!out && !ret){ pv.style.display='none'; btn.disabled=true; return; }
+
+  pv.style.display = 'block';
+  document.getElementById('sumBig').textContent = total.toFixed(1);
+
+  const parts = [
+    out ? `往路 ${out.km.toFixed(1)}km（${out.ic.n}）` : '往路 —',
+    ret ? `帰路 ${ret.km.toFixed(1)}km（${ret.ic.n}）` : '帰路 —',
+  ];
+  document.getElementById('sumDetail').textContent = parts.join('　＋　');
+
+  btn.disabled     = false;
+  const isEdit     = editingId !== null;
+  btn.textContent  = isEdit ? '修正を保存 →' : 'このセットを追加 →';
+  btn.className    = 'addbtn' + (isEdit ? ' update' : '');
+}
+
+// ══════════════════════════════════════════════════════
+// CRUD
+// ══════════════════════════════════════════════════════
+function commitEntry(){
+  const out = getLegVal('out');
+  const ret = getLegVal('ret');
+  if(!out && !ret) return;
+
+  if(editingId !== null){
+    const e = entries.find(e=>e.id===editingId);
+    if(e){ e.out=out; e.ret=ret; }
+    editingId = null;
+  } else {
+    entries.push({id:++eid, out, ret});
+  }
+  renderEntries();
+  updateTotals();
+  resetForm();
+}
+
+function startEdit(id){
+  const e = entries.find(e=>e.id===id);
+  if(!e) return;
+  editingId = id;
+
+  ['out','ret'].forEach(leg=>{
+    const val = e[leg];
+    document.getElementById(leg+'Route').value = val ? val.route.id : '';
+    onLegRoute(leg);
+    if(val){
+      document.getElementById(leg+'IC').value = val.km;
+      onLegIC(leg);
+    }
+  });
+
+  document.getElementById('mainForm').classList.add('edit-mode');
+  const idx = entries.findIndex(x=>x.id===id);
+  document.getElementById('fBadge').className   = 'fbadge edit';
+  document.getElementById('fBadge').textContent = `第${idx+1}回 修正中`;
+  document.getElementById('fLabel').textContent  = '往路・帰路を修正';
+  hideSuggest();
+  renderEntries();
+  document.getElementById('mainForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function cancelEdit(){
+  editingId = null;
+  resetForm();
+  renderEntries();
+}
+
+function deleteEntry(id){
+  if(!confirm('この記録を削除しますか？')) return;
+  if(editingId===id){ editingId=null; resetForm(); }
+  entries = entries.filter(e=>e.id!==id);
+  renderEntries();
+  updateTotals();
+}
+
+function resetForm(){
+  editingId = null;
+  ['out','ret'].forEach(leg=>{
+    document.getElementById(leg+'Route').value = '';
+    const ic = document.getElementById(leg+'IC');
+    ic.innerHTML = '<option value="">── ICを選択 ──</option>';
+    ic.disabled  = true;
+    document.getElementById(leg+'Sub').textContent = '路線を選んでください';
+    document.getElementById(leg+'Sub').className   = 'fleg-km txm';
+  });
+  hideSuggest();
+  document.getElementById('sumPreview').style.display = 'none';
+  document.getElementById('addBtn').disabled   = true;
+  document.getElementById('addBtn').textContent = 'このセットを追加 →';
+  document.getElementById('addBtn').className   = 'addbtn';
+  document.getElementById('mainForm').classList.remove('edit-mode');
+  document.getElementById('fBadge').className   = 'fbadge new';
+  updateFormNum();
+}
+
+function resetAll(){
+  if(!entries.length) return;
+  if(!confirm('すべてリセットしますか？')) return;
+  entries = []; editingId = null;
+  renderEntries(); updateTotals(); resetForm();
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════
+function renderEntries(){
+  const el = document.getElementById('entries');
+  if(!entries.length){ el.innerHTML='<div class="empty">まだ追加されていません</div>'; return; }
+
+  el.innerHTML = entries.map((e,i)=>{
+    const total  = (e.out?e.out.km:0)+(e.ret?e.ret.km:0);
+    const isEd   = editingId===e.id;
+
+    const legRow = (leg, lbl, cls) => {
+      const v = e[leg];
+      if(!v) return `
+        <div class="erow empty-leg">
+          <div class="erow-lbl ${cls}">${lbl}</div>
+          <div class="erow-route">—</div>
+          <div class="erow-ic" style="color:var(--txm)">未設定</div>
+        </div>`;
+      return `
+        <div class="erow">
+          <div class="erow-lbl ${cls}">${lbl}</div>
+          <div class="erow-route">${v.route.name}</div>
+          <div class="erow-ic">${v.ic.n}</div>
+          <div class="erow-km ${v.km>0?'pos':'zero'}">${v.km>0?'+'+v.km.toFixed(1)+' km':'起点'}</div>
+        </div>`;
+    };
+
+    return `
+      <div class="ecard${isEd?' editing':''} fu">
+        <div class="ecard-head">
+          <div class="enum">${i+1}</div>
+          <div class="etitle">${isEd?'✏️ 修正中…':'第'+(i+1)+'回'}</div>
+          <div class="ekm-total ${total>0?'pos':'zero'}">${total>0?'+'+total.toFixed(1):' 0.0'} km</div>
+        </div>
+        <div class="erows">
+          ${legRow('out','往路','out')}
+          ${legRow('ret','帰路','ret')}
+        </div>
+        <div class="ebtns">
+          ${isEd
+            ? `<button class="ebtn" onclick="cancelEdit()">キャンセル</button>`
+            : `<button class="ebtn" onclick="startEdit(${e.id})">✏️ 編集</button>`}
+          <button class="ebtn del" onclick="deleteEntry(${e.id})">🗑 削除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateTotals(){
+  const ded = entries.reduce((s,e)=>(e.out?e.out.km:0)+(e.ret?e.ret.km:0)+s, 0);
+  document.getElementById('tBase').textContent = workKm;
+  document.getElementById('tDed').textContent  = ded.toFixed(1);
+  document.getElementById('tTot').textContent  = (workKm+ded).toFixed(1);
+}
+
+function updateFormNum(){
+  document.getElementById('fBadge').textContent = `第${entries.length+1}回`;
+}
+
+function setWork(btn){
+  document.querySelectorAll('.wbtn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  workKm = parseInt(btn.dataset.km);
+  updateTotals();
+}
+</script>
+</body>
+</html>
